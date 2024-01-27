@@ -130,7 +130,7 @@
     <dependency>
       <groupId>com.mobiera.commons</groupId>
       <artifactId>stats-api</artifactId>
-      <version>2.3</version>
+      <version>2.4</version>
     </dependency>
    
     <dependency>
