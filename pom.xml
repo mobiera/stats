@@ -5,6 +5,28 @@
   <groupId>com.mobiera.commons</groupId>
   <artifactId>stats</artifactId>
   <version>2.2-SNAPSHOT</version>
+  <name>Stats Container</name>
+   <description>A scalable container for centralizing service statistics</description>
+   <url>https://github.com/mobiera/stats</url>
+   <licenses>
+      <license>
+         <name>The Apache License, Version 2.0</name>
+         <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+   </licenses>
+   <developers>
+      <developer>
+         <name>Fabrice Rochette</name>
+         <email>f.rochette@mobiera.com</email>
+         <organization>Mobiera</organization>
+         <organizationUrl>https://www.mobiera.com</organizationUrl>
+      </developer>
+   </developers>
+   <scm>
+      <connection>scm:git:git://github.com/mobiera/stats.git</connection>
+      <developerConnection>scm:git:ssh://github.com/mobiera/stats.git</developerConnection>
+      <url>https://github.com/mobiera/service-log-api/tree/main</url>
+   </scm>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <failsafe.useModulePath>false</failsafe.useModulePath>
