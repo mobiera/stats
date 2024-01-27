@@ -2,8 +2,8 @@ package com.mobiera.ms.commons.stats.res.c;
 
 import java.io.ByteArrayInputStream;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.Provider;
 
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.jboss.logging.Logger;

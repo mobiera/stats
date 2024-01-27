@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.jms.ConnectionFactory;
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.jms.ConnectionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;

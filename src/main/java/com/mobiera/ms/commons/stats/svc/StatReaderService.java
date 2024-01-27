@@ -13,11 +13,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.NamedQuery;
-import javax.persistence.Query;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Query;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.graalvm.collections.Pair;
