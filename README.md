@@ -35,10 +35,10 @@ Two suggested classes for handling the connection with the Artemis module:
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
-import javax.jms.JMSProducer;
-import javax.jms.Session;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSProducer;
+import jakarta.jms.Session;
 
 import org.graalvm.collections.Pair;
 import org.jboss.logging.Logger;
@@ -123,15 +123,15 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.JMSProducer;
-import javax.jms.ObjectMessage;
-import javax.jms.Queue;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSProducer;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.Queue;
 
 import org.graalvm.collections.Pair;
 import org.jboss.logging.Logger;
