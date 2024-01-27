@@ -14,7 +14,6 @@ import com.mobiera.commons.api.RegisterResponse;
 import com.mobiera.commons.exception.ClientException;
 
 
-@RegisterProvider(value = ClientResponseExceptionMapper.class)
 @RegisterRestClient
 public interface RegisterClientResource {
 
