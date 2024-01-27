@@ -5,16 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
-
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.jms.ConnectionFactory;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -29,6 +20,12 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.jms.ConnectionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 @Singleton
 public class StatController {

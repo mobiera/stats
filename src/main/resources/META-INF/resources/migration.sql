@@ -14,5 +14,5 @@ update stat set statclass='STK_ACTION_ITEM' where stat_class='8';
 
 alter table stat alter column statclass set not null;
 
-create index statentity_idx on stat (entity_id, statclass, stat_granularity, ts);
+create index statentity_idx on stat (entity_fk, statclass, stat_granularity, ts);
 create index statglobal_idx on stat (statclass, stat_granularity, ts);

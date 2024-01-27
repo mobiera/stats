@@ -1,16 +1,13 @@
 package com.mobiera.ms.commons.stats.assembler;
 
-import java.util.List;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import org.jboss.logging.Logger;
 
 import com.mobiera.commons.vo.VOAssembler;
 import com.mobiera.commons.vo.VOAssemblerException;
 import com.mobiera.ms.commons.stats.api.StatVO;
 import com.mobiera.ms.commons.stats.model.Stat;
+
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 @ApplicationScoped

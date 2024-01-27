@@ -1,26 +1,12 @@
 package com.mobiera.ms.commons.stats.res.s;
 
-import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
-
-import jakarta.inject.Inject;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.mobiera.commons.exception.ClientException;
 import com.mobiera.commons.util.JsonUtil;
 import com.mobiera.ms.commons.stats.api.CompareStatView;
 import com.mobiera.ms.commons.stats.api.GetStat;
@@ -29,10 +15,17 @@ import com.mobiera.ms.commons.stats.api.GetSumLastNStatVO;
 import com.mobiera.ms.commons.stats.api.StatGranularity;
 import com.mobiera.ms.commons.stats.api.StatVO;
 import com.mobiera.ms.commons.stats.api.StatView;
-import com.mobiera.ms.commons.stats.assembler.StatVOAssembler;
-import com.mobiera.ms.commons.stats.model.Stat;
 import com.mobiera.ms.commons.stats.svc.StatBuilderService;
 import com.mobiera.ms.commons.stats.svc.StatReaderService;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 
 
@@ -99,7 +92,7 @@ public class StatServerResource {
 			
 			try {
 				answer = statReaderService.getStatViewVO(request.getFrom(),
-						request.getTo(), request.getEntityIds()==null?new ArrayList<String>(0):request.getEntityIds(),
+						request.getTo(), request.getEntityFks()==null?new ArrayList<Long>(0):request.getEntityFks(),
 								request.getStatClass(), request.getStatGranularity(),
 								request.getStatEnums(), request.getStatResultType());
 				
@@ -226,13 +219,13 @@ public class StatServerResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response getStat(GetStat getStat)  {
 		if (getStat != null) {
-			if (getStat.getEntityId() != null) {
+			if (getStat.getEntityFk() != null) {
 				if (getStat.getStatClass() != null) {
 					if (getStat.getStatGranularity() != null) {
 						if (getStat.getTs() != null) {
 							StatVO stat = null;
 							try {
-								stat = statReaderService.getStatVO(getStat.getStatClass(), getStat.getEntityId(), getStat.getStatGranularity(), getStat.getTs());
+								stat = statReaderService.getStatVO(getStat.getStatClass(), getStat.getEntityFk(), getStat.getStatGranularity(), getStat.getTs());
 							} catch (Exception e) {
 								logger.error("", e);
 								return Response.status(Status.BAD_REQUEST).entity(stat).build();
