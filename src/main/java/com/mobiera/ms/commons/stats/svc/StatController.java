@@ -96,19 +96,23 @@ public class StatController {
 	private boolean finished = false;
 	
 	void onStart(@Observes StartupEvent ev) {
-		
+		logger.info("onStart: starting");
 		//startStatConsumers();
 		
 		startPurgeTask();
 		statService.setStartedService(true);
+		
+		logger.info("onStart: started");
     }
 	
 	void onStop(@Observes ShutdownEvent ev) {               
-    
+		logger.info("onStop: starting index creation");
 		createIndexes();
 		//stopStatConsumers();
 		stopPurgeTask();
 		statService.setStartedService(false);
+		
+		logger.info("onStop: index created, stopped");
 	}
 
 	
