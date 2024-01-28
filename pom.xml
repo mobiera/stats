@@ -110,7 +110,7 @@
     </dependency>
 <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-container-image-jib</artifactId>
+      <artifactId>quarkus-container-image-docker</artifactId>
     </dependency>
 <!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
 <dependency>
