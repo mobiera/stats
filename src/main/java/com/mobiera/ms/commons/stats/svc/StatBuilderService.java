@@ -7,11 +7,18 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
+import jakarta.transaction.Transactional;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -21,12 +28,8 @@ import com.mobiera.commons.util.JsonUtil;
 import com.mobiera.ms.commons.stats.api.StatEnum;
 import com.mobiera.ms.commons.stats.api.StatEvent;
 import com.mobiera.ms.commons.stats.api.StatGranularity;
+import com.mobiera.ms.commons.stats.api.StatVO;
 import com.mobiera.ms.commons.stats.model.Stat;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class StatBuilderService {
@@ -50,16 +53,15 @@ public class StatBuilderService {
 	String instanceId;
 	
 	
-	
 	private ZoneId tz = null;
 	
 	private static Logger logger = Logger.getLogger(StatBuilderService.class);
-	private static Map<String, Map<Long, Map<StatGranularity, Map<Instant, Stat>>>> stats;
+	private static Map<String, Map<String, Map<StatGranularity, Map<Instant, Stat>>>> stats;
 	private static boolean startedService = false;
 	
 	
 	public boolean isDebugEnabled() {
-		return (true);
+		return (logger.isInfoEnabled() && debug);
 	}
 	
 	
@@ -69,48 +71,48 @@ public class StatBuilderService {
 	
 	
 	
-	public void stat(String statClass, Long entityFk, StatEnum e, Instant ts, int increment, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	public void stat(String statClass, String entityId, StatEnum e, Instant ts, int increment, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
 		
 		
 		if (isDebugEnabled()) {
-			logger.info("stat: statClass: " + statClass + " entityFk: " + entityFk + " stats.keySet().size(): " + stats.keySet().size() );
+			logger.info("stat: statClass: " + statClass + " entityId: " + entityId + " stats.keySet().size(): " + stats.keySet().size() );
 		}
 		
 		
-		Stat hourlyStat = this.getStat(statClass, entityFk, StatGranularity.HOUR, this.getHourTs(ts), true);
-		Stat dailyStat = this.getStat(statClass, entityFk, StatGranularity.DAY, this.getDayTs(ts), true);
-		Stat monthlyStat = this.getStat(statClass, entityFk, StatGranularity.MONTH, this.getMonthTs(ts), true);
+		Stat hourlyStat = this.getStat(statClass, entityId, StatGranularity.HOUR, this.getHourTs(ts), true);
+		Stat dailyStat = this.getStat(statClass, entityId, StatGranularity.DAY, this.getDayTs(ts), true);
+		Stat monthlyStat = this.getStat(statClass, entityId, StatGranularity.MONTH, this.getMonthTs(ts), true);
 		
 		
-		privateStat(statClass, entityFk, e, ts, increment, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
+		privateStat(statClass, entityId, e, ts, increment, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
 			
 		
 		
 		
 	}
 	
-	public void stat(String statClass, Long entityFk, List<StatEnum> enums, Instant ts, int increment, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	public void stat(String statClass, String entityId, List<StatEnum> enums, Instant ts, int increment, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
 		
 		if (isDebugEnabled()) {
 			logger.info("stat: statClass: " 
-		+ statClass + " entityFk: " + entityFk + " stats.keySet().size(): " 
+		+ statClass + " entityId: " + entityId + " stats.keySet().size(): " 
 					+ stats.keySet().size()
 					+ " increment: " + increment + " doubleIncrement: " + doubleIncrement
 					);
 		}
 		
 		
-		Stat hourlyStat = this.getStat(statClass, entityFk, StatGranularity.HOUR, this.getHourTs(ts), true);
-		Stat dailyStat = this.getStat(statClass, entityFk, StatGranularity.DAY, this.getDayTs(ts), true);
-		Stat monthlyStat = this.getStat(statClass, entityFk, StatGranularity.MONTH, this.getMonthTs(ts), true);
+		Stat hourlyStat = this.getStat(statClass, entityId, StatGranularity.HOUR, this.getHourTs(ts), true);
+		Stat dailyStat = this.getStat(statClass, entityId, StatGranularity.DAY, this.getDayTs(ts), true);
+		Stat monthlyStat = this.getStat(statClass, entityId, StatGranularity.MONTH, this.getMonthTs(ts), true);
 		
 		
 		for(StatEnum e:enums) {
 			
 			
-			privateStat(statClass, entityFk, e, ts, increment, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
+			privateStat(statClass, entityId, e, ts, increment, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
 			
 			
 		}
@@ -119,23 +121,23 @@ public class StatBuilderService {
 		
 	}
 	
-	/*public void statDouble(String statClass, Long entityFk, List<StatEnum> enums, Instant ts, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	/*public void statDouble(String statClass, Long entityId, List<StatEnum> enums, Instant ts, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
 		
 		if (isDebugEnabled()) {
-			logger.info("stat: statClass: " + statClass + " entityFk: " + entityFk + " stats.keySet().size(): " + stats.keySet().size() );
+			logger.info("stat: statClass: " + statClass + " entityId: " + entityId + " stats.keySet().size(): " + stats.keySet().size() );
 		}
 		
 		
-		Stat hourlyStat = this.getStat(statClass, entityFk, StatGranularity.HOUR, this.getHourTs(ts), true);
-		Stat dailyStat = this.getStat(statClass, entityFk, StatGranularity.DAY, this.getDayTs(ts), true);
-		Stat monthlyStat = this.getStat(statClass, entityFk, StatGranularity.MONTH, this.getMonthTs(ts), true);
+		Stat hourlyStat = this.getStat(statClass, entityId, StatGranularity.HOUR, this.getHourTs(ts), true);
+		Stat dailyStat = this.getStat(statClass, entityId, StatGranularity.DAY, this.getDayTs(ts), true);
+		Stat monthlyStat = this.getStat(statClass, entityId, StatGranularity.MONTH, this.getMonthTs(ts), true);
 		
 		
 		for(StatEnum e:enums) {
 			
 			
-			privateStatDouble(statClass, entityFk, e, ts, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
+			privateStatDouble(statClass, entityId, e, ts, doubleIncrement, hourlyStat, dailyStat, monthlyStat);
 			
 			
 		}
@@ -144,17 +146,17 @@ public class StatBuilderService {
 		
 	}*/
 
-	public void privateStat(String statClass, Long entityFk, StatEnum e, Instant ts, int increment,
+	public void privateStat(String statClass, String entityId, StatEnum e, Instant ts, int increment,
 			double doubleIncrement,
 			Stat hourlyStat,
 			Stat dailyStat, Stat monthlyStat) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		if (isDebugEnabled()) {
-			logger.info("stat: statClass: " + statClass + " entityFk: " + entityFk + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
+			logger.info("stat: statClass: " + statClass + " entityId: " + entityId + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
 		}
 		
 		if (e.getIndex()<128) {
 			if (isDebugEnabled()) {
-				logger.info("stat: e.getIndex()<128 statClass: " + statClass + " entityFk: " + entityFk + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
+				logger.info("stat: e.getIndex()<128 statClass: " + statClass + " entityId: " + entityId + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
 			}
 			Method getMethod = Stat.class.getMethod("getLong" + e.getIndex());
 			Method setMethod = Stat.class.getMethod("setLong" + e.getIndex(), Long.class);
@@ -185,7 +187,7 @@ public class StatBuilderService {
 			}
 		} else {
 			if (isDebugEnabled()) {
-				logger.info("stat: e.getIndex()>=128 statClass: " + statClass + " entityFk: " + entityFk + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
+				logger.info("stat: e.getIndex()>=128 statClass: " + statClass + " entityId: " + entityId + " dateStat: " + ts + " enumStats - hourlyStat - e/v: " + e + "/" + hourlyStat + " " + e + " increment " + increment + " doubleIncrement " + doubleIncrement);
 			}
 			// double 
 			Method getMethod = Stat.class.getMethod("getDouble" + e.getIndex());
@@ -233,7 +235,7 @@ public class StatBuilderService {
 	
 	
 	
-	public synchronized Stat loadOrCreate(Long entityId, StatGranularity statGranularity, Instant ts, String sc) {
+	public synchronized Stat loadOrCreate(String entityId, StatGranularity statGranularity, Instant ts, String sc) {
 		
 		
 		String id = ts.getEpochSecond() + "-" + statGranularity.toString()+ "-" + entityId + "-" + sc + "-" + instanceId;
@@ -245,7 +247,7 @@ public class StatBuilderService {
 			stat.setId(id);
 			stat.setStatGranularity(statGranularity);
 			stat.setTs(ts);
-			stat.setEntityFk(entityId);
+			stat.setEntityId(entityId);
 			stat.setStatClass(sc);
 		}
 		
@@ -255,7 +257,7 @@ public class StatBuilderService {
 
 	
 	
-	public Stat getStat(String statClass, Long entityId, StatGranularity statGranularity, Instant currentDateTime, boolean create)  {
+	public Stat getStat(String statClass, String entityId, StatGranularity statGranularity, Instant currentDateTime, boolean create)  {
 		Stat stat = null;
 		Instant stateDateTime = null;
 		
@@ -269,14 +271,14 @@ public class StatBuilderService {
 
 		}
 
-		Map<Long, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = null;
+		Map<String, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = null;
 		Map<StatGranularity, Map<Instant, Stat>> granularityStats = null;
 		Map<Instant, Stat> dateStats = null;
 
 		synchronized (stats) {
 			scGanularityStats = stats.get(statClass);
 			if ((scGanularityStats == null) && create) {
-				scGanularityStats = new ConcurrentHashMap<Long, Map<StatGranularity, Map<Instant, Stat>>>(10);
+				scGanularityStats = new ConcurrentHashMap<String, Map<StatGranularity, Map<Instant, Stat>>>(10);
 				stats.put(statClass, scGanularityStats);
 			}
 		}
@@ -343,7 +345,7 @@ public class StatBuilderService {
 	public void init(ZoneId tz) {
 		this.tz = tz;
 		
-		stats = new ConcurrentHashMap<String, Map<Long, Map<StatGranularity, Map<Instant, Stat>>>>(5);
+		stats = new ConcurrentHashMap<String, Map<String, Map<StatGranularity, Map<Instant, Stat>>>>(5);
 		//em.find(Stat.class, "1");
 	}
 
@@ -352,7 +354,7 @@ public class StatBuilderService {
 		//em.setFlushMode(FlushModeType.COMMIT);
 		
 		if (isDebugEnabled()) {
-			logger.info("treatStatFlush: flushing stat " + stat.getStatClass() + " " + stat.getStatGranularity() + " " + stat.getEntityFk() + " " + stat.getTs());
+			logger.info("treatStatFlush: flushing stat " + stat.getStatClass() + " " + stat.getStatGranularity() + " " + stat.getEntityId() + " " + stat.getTs());
 		}
 		if (stat.getLastFlushed() == null) {
 			stat.setLastFlushed(Instant.now());
@@ -387,15 +389,15 @@ public class StatBuilderService {
 		for (Iterator<String> m = stats.keySet().iterator(); m.hasNext();) {
 
 			String sc = m.next();
-			Map<Long, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = stats.get(sc);
+			Map<String, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = stats.get(sc);
 
 			if (scGanularityStats != null) {
 				if (isDebugEnabled()) {
 					logger.info("flushStats: scGanularityStats size: " + scGanularityStats.size() + " sc " + sc);
 				}
 
-				for (Iterator<Long> i = scGanularityStats.keySet().iterator(); i.hasNext();) {
-					Long entityId = i.next();
+				for (Iterator<String> i = scGanularityStats.keySet().iterator(); i.hasNext();) {
+					String entityId = i.next();
 					Map<StatGranularity, Map<Instant, Stat>> granularityStats = scGanularityStats.get(entityId);
 					if (granularityStats != null) {
 						if (isDebugEnabled()) {
@@ -475,7 +477,7 @@ public class StatBuilderService {
 											}
 											if (isDebugEnabled()) {
 
-												logger.info("flushStats: removing from cache id: " + stat.getId() + " " + stat.getTs() + " " + stat.getStatGranularity() + " " + stat.getStatClass() + " " + stat.getEntityFk());
+												logger.info("flushStats: removing from cache id: " + stat.getId() + " " + stat.getTs() + " " + stat.getStatGranularity() + " " + stat.getStatClass() + " " + stat.getEntityId());
 												logger.info("flushStats: " + currentDateTime);
 											}
 										} else if (isDebugEnabled()){
@@ -522,9 +524,9 @@ public class StatBuilderService {
 	}
 	
 	
-	public void flushStats(String statClass, Long entityId)  {
+	public void flushStats(String statClass, String entityId)  {
 		
-			Map<Long, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = stats.get(statClass);
+			Map<String, Map<StatGranularity, Map<Instant, Stat>>> scGanularityStats = stats.get(statClass);
 
 			if (scGanularityStats != null) {
 				
@@ -705,7 +707,7 @@ public class StatBuilderService {
 	/*
 	 * 
 	 * public void stat(String statClass, 
-	 * Long entityFk, 
+	 * String entityId, 
 	 * List<StatEnum> enums, 
 	 * Instant ts, int increment) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 	
@@ -721,7 +723,7 @@ public class StatBuilderService {
 			}
 		}
 		
-		this.stat(stat.getStatClass(), stat.getEntityFk(), stat.getEnums(), stat.getTs(), stat.getIncrement(), stat.getDoubleIncrement());
+		this.stat(stat.getStatClass(), stat.getEntityId(), stat.getEnums(), stat.getTs(), stat.getIncrement(), stat.getDoubleIncrement());
 
 		
 		
@@ -752,3 +754,4 @@ public class StatBuilderService {
 	}
 
 }
+

@@ -2,6 +2,9 @@
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
@@ -9,6 +12,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Query;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.graalvm.collections.Pair;
@@ -25,16 +34,11 @@ import com.mobiera.ms.commons.stats.api.StatView;
 import com.mobiera.ms.commons.stats.assembler.StatVOAssembler;
 import com.mobiera.ms.commons.stats.model.Stat;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
-
 @ApplicationScoped
 public class StatReaderService {
 
 	private final static String SUM_START_QUERY = "SELECT ";
-	private final static String SUM_END_QUERY_SOME = " FROM Stat s where s.statClass=:statClass AND s.entityFk IN :entityFks AND s.statGranularity=:statGranularity AND s.ts>=:from AND s.ts<:to";
+	private final static String SUM_END_QUERY_SOME = " FROM Stat s where s.statClass=:statClass AND s.entityId IN :entityIds AND s.statGranularity=:statGranularity AND s.ts>=:from AND s.ts<:to";
 	private final static String SUM_END_QUERY_ALL = " FROM Stat s where s.statClass=:statClass AND s.statGranularity=:statGranularity AND s.ts>=:from AND s.ts<:to";
 	private static Logger logger = Logger.getLogger(StatReaderService.class);
 	
@@ -62,6 +66,16 @@ public class StatReaderService {
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.in.memory.past.units")
 	Integer inMemoryPastUnits;
 	
+	private static NumberFormat nf = null;
+	
+	private NumberFormat getNf() {
+		if (nf == null) {
+			nf = NumberFormat.getInstance();
+			nf.setMaximumIntegerDigits(20);
+			nf.setMaximumFractionDigits(2);
+		}
+		return nf;
+	}
 	
 	private List<String> buildHeader(List<StatEnum> enums) {
 		List<String> header = new ArrayList<String>(enums.size());
@@ -128,15 +142,15 @@ public class StatReaderService {
 			List<String> row = new ArrayList<String>(kpis.size() + 1);
 			List<Object> rowNum = new ArrayList<Object>(kpis.size() + 1);
 			
-			List<Long> flushed = new ArrayList<Long>();
+			List<String> flushed = new ArrayList<String>();
 			
 			for (Kpi kpi: kpis) {
 				
 				if ((kpi.getStat() == null) || (kpi.getStat().getIndex() == -1)) {
 					row.add(zLow.toInstant().toString());
 				} else {
-					List<Long> entityFks = new ArrayList<Long>(1);
-					entityFks.add(((Kpi)kpi).getEntityFk());
+					List<String> entityIds = new ArrayList<String>(1);
+					entityIds.add(((Kpi)kpi).getEntityId());
 					List<StatEnum> statEnums = new ArrayList<StatEnum>(1);
 					
 					String statClass = kpi.getEntityClass();
@@ -144,17 +158,17 @@ public class StatReaderService {
 					
 					if (statClass == null) {
 						statClass = kpi.getType().replaceAll("Kpi", "").replaceAll("\\B([A-Z])", "_$1").toUpperCase();
-						logger.info("getCompareStatViewVO: generated statClass: " + statClass + " please fix front");
+						logger.info("getCompareStatViewVO: generated statClass: " + statClass + " ");
 					}
-					if (!flushed.contains(kpi.getEntityFk())) {
-						flushed.add(kpi.getEntityFk());
-						statService.flushStats(statClass, kpi.getEntityFk());
+					if (!flushed.contains(kpi.getEntityId())) {
+						flushed.add(kpi.getEntityId());
+						statService.flushStats(statClass, kpi.getEntityId());
 					}
 					
 						
 					Pair<List<String>, List<Object>>  sum = null;
 					sum = this.getSumRow(zLow, zHigh, 
-							entityFks, statClass, statGranularity, statEnums, statResultType, false);
+							entityIds, statClass, statGranularity, statEnums, statResultType, false);
 					List<String> cell = sum.getLeft();
 					List<Object> numCell = sum.getRight();
 					row.add(cell.iterator().next());
@@ -217,8 +231,8 @@ public class StatReaderService {
 				
 				sum.add("");
 			} else {
-				List<Long> entityFks = new ArrayList<Long>(1);
-				entityFks.add(((Kpi)kpi).getEntityFk());
+				List<String> entityIds = new ArrayList<String>(1);
+				entityIds.add(((Kpi)kpi).getEntityId());
 				List<StatEnum> statEnums = new ArrayList<StatEnum>(1);
 				statEnums.add(kpi.getStat());
 				
@@ -226,11 +240,11 @@ public class StatReaderService {
 				
 				if (statClass == null) {
 					statClass = kpi.getType().replaceAll("Kpi", "").replaceAll("\\B([A-Z])", "_$1").toUpperCase();
-					logger.info("getCompareStatViewVO: generated statClass: " + statClass + " please fix front");
+					logger.info("getCompareStatViewVO: generated statClass: " + statClass + " ");
 				}
 				
 				Pair<List<String>, List<Object>>  s = this.getSumRow(zFrom, zTo, 
-						entityFks, statClass, statGranularity, statEnums, statResultType, false);
+						entityIds, statClass, statGranularity, statEnums, statResultType, false);
 				List<String> cell = s.getLeft();
 				List<Object> numCell = s.getRight();
 				sum.add(cell.iterator().next());
@@ -255,7 +269,7 @@ public class StatReaderService {
 	
 	
 	private void logKpi(Kpi kpi) {
-		logger.info("kpi: entityFk: " + kpi.getEntityFk() +  " statClass: " + kpi.getEntityClass() +  " label: " + kpi.getLabel());
+		logger.info("kpi: entityId: " + kpi.getEntityId() +  " statClass: " + kpi.getEntityClass() +  " label: " + kpi.getLabel());
 	}
 
 
@@ -270,13 +284,13 @@ public class StatReaderService {
 
 
 
-	public StatView getStatViewVO(Instant from, Instant to, List<Long> entityFks, String statClass,
+	public StatView getStatViewVO(Instant from, Instant to, List<String> entityIds, String statClass,
 			StatGranularity statGranularity, List<StatEnum> statEnums, StatResultType statResultType) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		
 		//statService.notifyStatFlushLockObj();
 		
-		if (entityFks != null) {
-			for (Long id: entityFks) {
+		if (entityIds != null) {
+			for (String id: entityIds) {
 				statService.flushStats(statClass, id);
 			}
 		}
@@ -284,7 +298,7 @@ public class StatReaderService {
 		StatView vo = new StatView();
 		vo.setFrom(from);
 		vo.setTo(to);
-		vo.setEntityFks(entityFks);
+		vo.setEntityIds(entityIds);
 		vo.setStatClass(statClass);
 		vo.setStatGranularity(statGranularity);
 		vo.setStatEnums(statEnums);
@@ -315,7 +329,7 @@ public class StatReaderService {
 			
 			while (zLow.toInstant().isBefore(to)) {
 				Pair<List<String>, List<Object>>  row = this.getSumRow(zLow, zHigh, 
-						entityFks, statClass, statGranularity, statEnums, statResultType, true);
+						entityIds, statClass, statGranularity, statEnums, statResultType, true);
 				result.add(row.getLeft());
 				
 				switch (statGranularity) {
@@ -349,7 +363,7 @@ public class StatReaderService {
 			ZonedDateTime zTo = ZonedDateTime.ofInstant(to, statService.getTz());
 			ZonedDateTime zFrom = ZonedDateTime.ofInstant(from, statService.getTz());
 
-			Pair<List<String>, List<Object>> sum = this.getSumRow(zFrom, zTo, entityFks, statClass, statGranularity, statEnums, statResultType, false);
+			Pair<List<String>, List<Object>> sum = this.getSumRow(zFrom, zTo, entityIds, statClass, statGranularity, statEnums, statResultType, false);
 			vo.setSum(sum.getLeft());
 			vo.setNumericSum(sum.getRight());
 		}
@@ -364,11 +378,11 @@ public class StatReaderService {
 	/*
 	 * Get sum for a given Interval, one or more entities
 	 */
-	private Pair<List<String>, List<Object>> getSumRow(ZonedDateTime from, ZonedDateTime to, List<Long> entityFks, String statClass,
+	private Pair<List<String>, List<Object>> getSumRow(ZonedDateTime from, ZonedDateTime to, List<String> entityIds, String statClass,
 			StatGranularity statGranularity, List<StatEnum> statEnums, StatResultType statResultType, boolean setDateLabel) {
 		if (isDebugEnabled()) {
 			try {
-				logger.info("getSumRow: statClass: " + statClass + " statGranularity: " + statGranularity + " from: " + from + " to: " + to + " entityFks: " + entityFks + " statEnums: " + JsonUtil.serialize(statEnums, false));
+				logger.info("getSumRow: statClass: " + statClass + " statGranularity: " + statGranularity + " from: " + from + " to: " + to + " entityIds: " + entityIds + " statEnums: " + JsonUtil.serialize(statEnums, false));
 			} catch (JsonProcessingException e) {
 				
 			}
@@ -385,7 +399,7 @@ public class StatReaderService {
 		}
 		
 
-		String qStr = this.buildQuery(entityFks.size() == 0, statEnums);
+		String qStr = this.buildQuery(entityIds.size() == 0, statEnums);
 		Object[] qResult = null;
 		if (isDebugEnabled()) {
 			logger.info("getSumRow: query: " + qStr); 
@@ -397,7 +411,7 @@ public class StatReaderService {
 					.setParameter("from", from.toInstant())
 					.setParameter("to", to.toInstant());
 			
-			if (entityFks.size() > 0) q.setParameter("entityFks", entityFks);
+			if (entityIds.size() > 0) q.setParameter("entityIds", entityIds);
 			
 			
 			List results = q.getResultList();
@@ -413,6 +427,13 @@ public class StatReaderService {
 					qResult[0] = object;
 				} else if (object instanceof Double) {
 					qResult = new Object[1];
+					
+					BigDecimal bd = BigDecimal.valueOf((Double)object);
+				    bd = bd.setScale(2, RoundingMode.HALF_UP);
+				    object = Double.valueOf(bd.doubleValue());
+					
+					
+					
 					qResult[0] = object;
 				} else {
 					qResult = (Object[]) results.get(0);
@@ -467,12 +488,17 @@ public class StatReaderService {
 					
 					Object qi = qResult[i];
 					
-					result.add(qi.toString());
+					
 					
 					if (qi instanceof Long) {
 						numericResult.add((Long)qi);
+						result.add(qi.toString());
 					} else if (qi instanceof Double) {
-						numericResult.add((Double)qi);
+						
+						BigDecimal bd = BigDecimal.valueOf((Double)qi);
+					    bd = bd.setScale(2, RoundingMode.HALF_UP);
+					    numericResult.add(Double.valueOf(bd.doubleValue()));
+					    result.add(getNf().format(bd));
 					}
 					
 				}
@@ -531,11 +557,11 @@ public class StatReaderService {
 	
 	
 	
-	public StatVO getStatVO(String statClass, Long entityId, StatGranularity statGranularity, Instant currentDateTime) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
+	public StatVO getStatVO(String statClass, String entityId, StatGranularity statGranularity, Instant currentDateTime) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
 		
 		Query q = em.createNamedQuery("Stat.get");
 		q.setParameter("statClass", statClass);
-		q.setParameter("entityFk", entityId);
+		q.setParameter("entityId", entityId);
 		q.setParameter("statGranularity", statGranularity);
 		q.setParameter("ts", currentDateTime);
 		
@@ -548,10 +574,10 @@ public class StatReaderService {
 	}
 		
 	
-	private StatVO sumStats(String statClass, Long entityFk, StatGranularity statGranularity, List<Stat> toSum) 
+	private StatVO sumStats(String statClass, String entityId, StatGranularity statGranularity, List<Stat> toSum) 
 			throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		StatVO vo = new StatVO();
-		vo.setEntityFk(entityFk);
+		vo.setEntityId(entityId);
 		vo.setStatClass(statClass);
 		vo.setStatGranularity(statGranularity);
 		
@@ -580,7 +606,14 @@ public class StatReaderService {
 					Method getVMethod = StatVO.class.getMethod("getDouble" + i);
 					Method setVMethod = StatVO.class.getMethod("setDouble" + i, Double.class);
 					Double value = (Double) getSMethod.invoke(s);
+					
 					if (value != null) {
+						BigDecimal bd = BigDecimal.valueOf((Double)value);
+					    bd = bd.setScale(2, RoundingMode.HALF_UP);
+					    value = Double.valueOf(bd.doubleValue());
+						
+					    
+					    
 						if (first) {
 							setVMethod.invoke(vo, value);
 							first = false;
@@ -599,7 +632,7 @@ public class StatReaderService {
 
 
 	/*public StatVO getSumLastNStatVO(String statClass, 
-			Long entityId, 
+			String entityId, 
 			StatGranularity statGranularity, 
 			Instant currentDateTime, int n) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
 		StatVO vo = null;
@@ -637,7 +670,7 @@ public class StatReaderService {
 
 
 	public StatVO getSumLastNStatVO(String statClass, 
-			Long entityId, 
+			String entityId, 
 			StatGranularity statGranularity, 
 			Instant currentDateTime, int n) throws NoSuchMethodException, SecurityException, 
 			IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
@@ -652,7 +685,7 @@ public class StatReaderService {
 			
 			Query q = em.createNamedQuery("Stat.listOne");
 			q.setParameter("statClass", statClass);
-			q.setParameter("entityFk", entityId);
+			q.setParameter("entityId", entityId);
 			q.setParameter("statGranularity", statGranularity);
 			q.setParameter("from", toZdt.toInstant());
 			q.setParameter("to", currentZdt.toInstant());
@@ -712,3 +745,4 @@ public class StatReaderService {
 	}
 
 }
+
