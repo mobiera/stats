@@ -287,7 +287,7 @@ public class StatReaderService {
 	public StatView getStatViewVO(Instant from, Instant to, List<String> entityIds, String statClass,
 			StatGranularity statGranularity, List<StatEnum> statEnums, StatResultType statResultType) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		
-		//statService.notifyStatFlushLockObj();
+		statService.notifyStatFlushLockObj();
 		
 		if (entityIds != null) {
 			for (String id: entityIds) {
