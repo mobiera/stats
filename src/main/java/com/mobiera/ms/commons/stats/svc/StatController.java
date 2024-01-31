@@ -220,9 +220,9 @@ public class StatController {
 		
 		while (startedPurge) {
 			try {
-				if (debug) {
+				//if (debug) {
 					logger.info("startPurgeTask: flushStat");
-				}
+				//}
 				statService.flushStats(false);
 				
 						synchronized (purgeStackLock) {
