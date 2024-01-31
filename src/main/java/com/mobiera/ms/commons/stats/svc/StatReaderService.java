@@ -675,8 +675,9 @@ public class StatReaderService {
 			Instant currentDateTime, int n) throws NoSuchMethodException, SecurityException, 
 			IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
 		StatVO vo = null;
-
-
+		
+		statService.flushStats(statClass, entityId);
+		
 		ZonedDateTime currentZdt = ZonedDateTime.ofInstant(currentDateTime, statService.getTz());
 
 		
