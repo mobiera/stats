@@ -677,6 +677,9 @@ public class StatReaderService {
 		StatVO vo = null;
 
 
+		statService.notifyStatFlushLockObj();
+		
+		
 		ZonedDateTime currentZdt = ZonedDateTime.ofInstant(currentDateTime, statService.getTz());
 
 		
