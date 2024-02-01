@@ -304,28 +304,37 @@ public class StatReaderService {
 		vo.setStatEnums(statEnums);
 		
 		ZonedDateTime zLow = ZonedDateTime.ofInstant(from, statService.getTz());
-		ZonedDateTime zHigh = ZonedDateTime.ofInstant(to, statService.getTz());
+		ZonedDateTime zHigh = ZonedDateTime.ofInstant(from, statService.getTz());
 
-		logger.info("getStatViewVO: before adding: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+		if (isDebugEnabled()) {
+			logger.info("getStatViewVO: before adding: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+			
+		}
 		
 		
 		switch (statGranularity) {
 			case HOUR: {
 				zHigh = zHigh.plus(1, ChronoUnit.HOURS);
-				logger.info("getStatViewVO: added 1 hour to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				if (isDebugEnabled()) {
+					logger.info("getStatViewVO: added 1 hour to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				}
 				
 				break;
 			}
 			case DAY: {
 				zHigh = zHigh.plus(1, ChronoUnit.DAYS);
-				logger.info("getStatViewVO: added 1 day to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				if (isDebugEnabled()) {
+					logger.info("getStatViewVO: added 1 day to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				}
 
 				break;
 			}
 			case MONTH:
 			default: {
 				zHigh = zHigh.plus(1, ChronoUnit.MONTHS);
-				logger.info("getStatViewVO: added 1 month to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				if (isDebugEnabled()) {
+					logger.info("getStatViewVO: added 1 month to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				}
 
 				break;
 			}
@@ -335,12 +344,16 @@ public class StatReaderService {
 	
 			List<List<String>> result = new ArrayList<List<String>>(30);
 			
-			logger.info("getStatViewVO: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+			if (isDebugEnabled()) {
+				logger.info("getStatViewVO: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+			}
 			
 			
 			while (zLow.toInstant().isBefore(to)) {
 				
-				logger.info("getStatViewVO: inloop: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				if (isDebugEnabled()) {
+					logger.info("getStatViewVO: inloop: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				}
 				
 				
 				Pair<List<String>, List<Object>>  row = this.getSumRow(zLow, zHigh, 
@@ -368,11 +381,14 @@ public class StatReaderService {
 				}
 			}
 			
-			try {
-				logger.info("getStatViewVO: exitLoop: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType + " result: " + JsonUtil.serialize(result, false));
-			} catch (JsonProcessingException e) {
-				logger.error("", e);
+			if (isDebugEnabled()) {
+				try {
+					logger.info("getStatViewVO: exitLoop: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType + " result: " + JsonUtil.serialize(result, false));
+				} catch (JsonProcessingException e) {
+					logger.error("", e);
+				}
 			}
+			
 			
 			
 			vo.setStats(result);
@@ -386,14 +402,18 @@ public class StatReaderService {
 			ZonedDateTime zTo = ZonedDateTime.ofInstant(to, statService.getTz());
 			ZonedDateTime zFrom = ZonedDateTime.ofInstant(from, statService.getTz());
 
-			logger.info("getStatViewVO: inSum: zFrom: " + zFrom + " zTo: " + zTo + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+			if (isDebugEnabled()) {
+				logger.info("getStatViewVO: inSum: zFrom: " + zFrom + " zTo: " + zTo + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+			}
 
 			
 			Pair<List<String>, List<Object>> sum = this.getSumRow(zFrom, zTo, entityIds, statClass, statGranularity, statEnums, statResultType, false);
 			vo.setSum(sum.getLeft());
 			vo.setNumericSum(sum.getRight());
 			
-			logger.info("getStatViewVO: inSum: result: zFrom: " + zFrom + " zTo: " + zTo + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType + " sum.getLeft(): " + sum.getLeft() + " sum.getRight(): " + sum.getRight());
+			if (isDebugEnabled()) {
+				logger.info("getStatViewVO: inSum: result: zFrom: " + zFrom + " zTo: " + zTo + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType + " sum.getLeft(): " + sum.getLeft() + " sum.getRight(): " + sum.getRight());
+			}
 
 		}
 		vo.setStatLabels(this.buildHeader(statEnums));
