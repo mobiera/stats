@@ -306,23 +306,29 @@ public class StatReaderService {
 		ZonedDateTime zLow = ZonedDateTime.ofInstant(from, statService.getTz());
 		ZonedDateTime zHigh = ZonedDateTime.ofInstant(to, statService.getTz());
 
+		logger.info("getStatViewVO: before adding: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
 		
-		logger.info("getStatViewVO: from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
 		
 		switch (statGranularity) {
-		case HOUR: {
-			zHigh = zHigh.plus(1, ChronoUnit.HOURS);
-			break;
-		}
-		case DAY: {
-			zHigh = zHigh.plus(1, ChronoUnit.DAYS);
-			break;
-		}
-		case MONTH:
-		default: {
-			zHigh = zHigh.plus(1, ChronoUnit.MONTHS);
-			break;
-		}
+			case HOUR: {
+				zHigh = zHigh.plus(1, ChronoUnit.HOURS);
+				logger.info("getStatViewVO: added 1 hour to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+				
+				break;
+			}
+			case DAY: {
+				zHigh = zHigh.plus(1, ChronoUnit.DAYS);
+				logger.info("getStatViewVO: added 1 day to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+
+				break;
+			}
+			case MONTH:
+			default: {
+				zHigh = zHigh.plus(1, ChronoUnit.MONTHS);
+				logger.info("getStatViewVO: added 1 month to zHigh: zLow: " + zLow + " zHigh: " + zHigh + " from: " + from  + " to: " + to + " entityIds: " + entityIds + " statClass: " + statClass + " statGranularity: " + statGranularity + " statResultType: " + statResultType);
+
+				break;
+			}
 		
 		}
 		
