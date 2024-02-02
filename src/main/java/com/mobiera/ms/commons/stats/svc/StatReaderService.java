@@ -451,7 +451,7 @@ public class StatReaderService {
 		String qStr = this.buildQuery(entityIds.size() == 0, statEnums);
 		Object[] qResult = null;
 		if (isDebugEnabled()) {
-			logger.info("getSumRow: query: " + qStr); 
+			logger.info("getSumRow: query: " + qStr + " statClass: " + statClass + " statGranularity: " + statGranularity + " from: " + from + " to: " + to + " entityIds: " + entityIds); 
 		}
 		if (qStr != null) {
 			Query q = em.createQuery(qStr)
@@ -461,6 +461,7 @@ public class StatReaderService {
 					.setParameter("to", to.toInstant());
 			
 			if (entityIds.size() > 0) q.setParameter("entityIds", entityIds);
+			
 			
 			
 			List results = q.getResultList();
