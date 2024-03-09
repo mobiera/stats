@@ -14,7 +14,6 @@ import org.jboss.logging.Logger;
 import com.mobiera.commons.api.RegisterRequest;
 import com.mobiera.commons.api.RegisterResponse;
 import com.mobiera.commons.util.JsonUtil;
-import com.mobiera.ms.commons.stats.res.c.RegisterClientResource;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -45,8 +44,6 @@ public class StatController {
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.debug")
 	Boolean debug;
 	
-	@ConfigProperty(name = "com.mobiera.ms.commons.stats.standalone")
-	Boolean standalone;
 	
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.threads")
 	Integer threads;
@@ -64,8 +61,6 @@ public class StatController {
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.jms.incoming.ttl")
 	Long ttl;
 	
-	@ConfigProperty(name = "com.mobiera.ms.mno.app.instance_id")
-	String instanceId;
 	
 	
 	@Inject ConnectionFactory connectionFactory;
@@ -74,17 +69,13 @@ public class StatController {
 	@Inject
 	StatBuilderService statService;
 	
-	@RestClient
-	@Inject
-	RegisterClientResource registerClientResource;
 	
 	@ConfigProperty(name = "com.mobiera.ms.commons.app.name")
 	String appName;
 	
 	@Inject EntityManager em;
 	
-	private String appId = null;
-	private String registryId = null;
+	//private String registryId = null;
 	private ZoneId tz = null;
 	
 	private Object purgeStackLock = new Object();
@@ -155,21 +146,22 @@ public class StatController {
 	}
 
 	private Uni<Void> startPurgeTask(UUID uuid) {
-		
+		/*
 		if (standalone) {
-			appId = appName;
+			instanceId = appName;
 			tz = ZoneId.of(timezoneName);
 		} else {
 			Object lockObj = new Object();
 			RegisterRequest re = new RegisterRequest();
 			re.setApp("STATS");
-			re.setId("stats" + instanceId);
-			while (appId == null) {
+			re.setId(instanceId);
+			while (instanceId == null) {
 				try {
 					logger.info("startPurgeTask: " + JsonUtil.serialize(re, false));
 					RegisterResponse response = registerClientResource.registerRequest(re);
-					appId = response.getId();
+					instanceId = response.getId();
 					registryId = response.getRegistryId();
+					re.setId(instanceId);
 				} catch (Exception e) {
 					logger.error("startPurgeTask: cannot register yet, will retry: ", e);
 					synchronized(lockObj) {
@@ -183,7 +175,7 @@ public class StatController {
 			}
 			
 		}
-		
+		*/
 		
 		if (tz == null) {
 			try {
@@ -196,7 +188,7 @@ public class StatController {
 		}
 
 		
-		logger.info("configured timezone: " + tz + " appId: " + appId + " registryId: " + registryId);
+		logger.info("configured timezone: " + tz);
 		
 		statService.init(tz);
 		startedPurge = true;
@@ -291,35 +283,7 @@ public class StatController {
 		}
 	}
 	
-	public String getAppId() {
-		return appId;
-	}
-
-	public String getRegistryId() {
-		return registryId;
-	}
-
-	/*
-	private static List<StatConsumer> consumers = new ArrayList<StatConsumer>();
 	
-	private void stopStatConsumers() {
-		for (StatConsumer c: consumers) {
-			c.stop();	
-		}
-	}
 	
-	public void startStatConsumers() {
-		
-		for (int i=0; i<threads;i++) {
-			logger.info("startStatConsumers: starting consumer #" + i);
-			StatConsumer consumer = new StatConsumer(connectionFactory, exDelay, queueName, i, debug);
-			consumer.start();	
-			consumers.add(consumer);
-		}
-		
-		
-	}
-
-	*/
 
 }

@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,8 +50,7 @@ public class StatBuilderService {
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.debug")
 	Boolean debug;
 	
-	@ConfigProperty(name = "com.mobiera.ms.mno.app.instance_id")
-	String instanceId;
+	private static final String instanceId = UUID.randomUUID().toString();
 	
 	
 	private ZoneId tz = null;
@@ -63,12 +63,6 @@ public class StatBuilderService {
 	public boolean isDebugEnabled() {
 		return (logger.isInfoEnabled() && debug);
 	}
-	
-	
-	
-	
-	
-	
 	
 	
 	public void stat(String statClass, String entityId, StatEnum e, Instant ts, int increment, double doubleIncrement) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
