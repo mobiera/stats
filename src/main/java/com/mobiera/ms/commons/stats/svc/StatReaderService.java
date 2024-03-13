@@ -559,6 +559,8 @@ public class StatReaderService {
 	
 	public StatVO getStatVO(String statClass, String entityId, StatGranularity statGranularity, Instant currentDateTime) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
 		
+		statService.flushStats(statClass, entityId);
+		
 		Query q = em.createNamedQuery("Stat.get");
 		q.setParameter("statClass", statClass);
 		q.setParameter("entityId", entityId);
