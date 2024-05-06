@@ -474,7 +474,7 @@ public class StatBuilderService {
 												logger.info("flushStats: removing from cache id: " + stat.getId() + " " + stat.getTs() + " " + stat.getStatGranularity() + " " + stat.getStatClass() + " " + stat.getEntityId());
 												logger.info("flushStats: " + currentDateTime);
 											}
-										} else if (isDebugEnabled()){
+										} else {
 											try {
 												
 												Object statLockObj = this.getLockObj(stat.getLockObjId());
