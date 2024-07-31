@@ -14,6 +14,7 @@ quarkus.datasource.username - Database username
 quarkus.datasource.password - Database password
 quarkus.datasource.jdbc.url - Database URL
 com.mobiera.ms.commons.stats.debug - Set to true to activate logging
+com.mobiera.ms.commons.stats.jms.queue.name - set the queue name
 ```
 **Note**: Ensure that the Artemis credentials in your project can connect with the configured credentials.
 
