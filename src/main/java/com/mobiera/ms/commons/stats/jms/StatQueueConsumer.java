@@ -1,7 +1,11 @@
 package com.mobiera.ms.commons.stats.jms;
 
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -9,7 +13,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobiera.commons.util.JsonUtil;
+import com.mobiera.ms.commons.stats.api.StatEnum;
 import com.mobiera.ms.commons.stats.api.StatEvent;
 import com.mobiera.ms.commons.stats.svc.StatBuilderService;
 
@@ -28,6 +35,8 @@ import jakarta.jms.Message;
 import jakarta.jms.ObjectMessage;
 import jakarta.jms.Queue;
 import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
+import lombok.Data;
 
 @ApplicationScoped
 public class StatQueueConsumer {
@@ -237,31 +246,32 @@ public class StatQueueConsumer {
     										
     									}
             	                	}
-        							try {
-        								if (debug) 
-        									logger.info("statConsumer: " + queueName + " before stat "+ uuid + " " + (System.currentTimeMillis() - now));
-
-        								getStatBuilderService().statEvent(event);
-        								if (debug) 
-        									logger.info("statConsumer: " + queueName + " after stat, before commit "+ uuid + " " + (System.currentTimeMillis() - now));
-
-        								context.commit();
-        								if (debug) 
-        									logger.info("statConsumer: " + queueName + " after commit "+ uuid + " " + (System.currentTimeMillis() - now));
-
-        								
-        								
-        							} catch (Exception e) {
-        								try {
-        									logger.warn("statConsumer: " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": exception " + JsonUtil.serialize(event, false), e);
-        								} catch (JsonProcessingException e1) {
-        									logger.warn("statConsumer: " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": exception", e);
-        								}
-        								context.rollback();
-        								//if (debug) 
-        								logger.info("statConsumer: " + queueName + " after rollback "+ uuid + " " + (System.currentTimeMillis() - now));
-
-        							} 
+											processStatEvent(uuid, now, event, context);
+        						} else if (message instanceof TextMessage) {
+											ObjectMapper objectMapper = new ObjectMapper();
+											TextMessage txtMsg = (TextMessage) message;
+											JsonNode rootNode = objectMapper.readTree(txtMsg.getText());
+											
+											List<StatEnum> enums = new ArrayList<>();
+											rootNode.path("enums").forEach(enumNode -> {
+													try {
+															enums.add(objectMapper.treeToValue(enumNode, StatEnumImpl.class));
+        								} catch (JsonProcessingException e) {
+													}
+											});
+											event = new StatEvent();
+											event.setStatClass(rootNode.path("statClass").asText("null"));
+											event.setEntityId(rootNode.path("entityId").asText("null"));
+											if (!rootNode.path("ts").isMissingNode()) {
+													try {
+															event.setTs(Instant.parse(rootNode.path("ts").asText()));
+													} catch (DateTimeParseException e) {
+													}
+											}
+											event.setIncrement(rootNode.path("increment").asInt(0));
+											event.setDoubleIncrement(rootNode.path("doubleIncrement").asDouble(0.0));
+											event.setEnums(enums);
+											processStatEvent(uuid, now, event, context);
         						} else {
         							if (debug) logger.warn("statConsumer " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": unkown event " + event);
         							context.commit();
@@ -342,7 +352,36 @@ public class StatQueueConsumer {
 	}
 	
 	
+	private void processStatEvent(UUID uuid, long now, StatEvent event, JMSContext context) {
+		try {
+			if (debug) 
+				logger.info("statConsumer: " + queueName + " before stat "+ uuid + " " + (System.currentTimeMillis() - now));
+
+			getStatBuilderService().statEvent(event);
+			if (debug) 
+				logger.info("statConsumer: " + queueName + " after stat, before commit "+ uuid + " " + (System.currentTimeMillis() - now));
+
+			context.commit();
+			if (debug) 
+				logger.info("statConsumer: " + queueName + " after commit "+ uuid + " " + (System.currentTimeMillis() - now));
+		} catch (Exception e) {
+			try {
+				logger.warn("statConsumer: " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": exception " + JsonUtil.serialize(event, false), e);
+			} catch (JsonProcessingException e1) {
+				logger.warn("statConsumer: " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": exception", e);
+			}
+			context.rollback();
+			logger.info("statConsumer: " + queueName + " after rollback "+ uuid + " " + (System.currentTimeMillis() - now));
+		}
+	}
 	
+	@Data
+	public static class StatEnumImpl implements StatEnum {
+    private Integer index;
+    private String label;
+    private String value;
+    private String description;
+	}
 	
     
    
