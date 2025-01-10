@@ -246,7 +246,7 @@ public class StatQueueConsumer {
     										
     									}
             	                	}
-											sendEvent(uuid, now, event, context);
+											processStatEvent(uuid, now, event, context);
         						} else if (message instanceof TextMessage) {
 											ObjectMapper objectMapper = new ObjectMapper();
 											TextMessage txtMsg = (TextMessage) message;
@@ -271,7 +271,7 @@ public class StatQueueConsumer {
 											event.setIncrement(rootNode.path("increment").asInt(0));
 											event.setDoubleIncrement(rootNode.path("doubleIncrement").asDouble(0.0));
 											event.setEnums(enums);
-											sendEvent(uuid, now, event, context);
+											processStatEvent(uuid, now, event, context);
         						} else {
         							if (debug) logger.warn("statConsumer " + queueName + " "+ uuid + " " + (System.currentTimeMillis() - now)+ ": unkown event " + event);
         							context.commit();
@@ -352,7 +352,7 @@ public class StatQueueConsumer {
 	}
 	
 	
-	private void sendEvent(UUID uuid, long now, StatEvent event, JMSContext context) {
+	private void processStatEvent(UUID uuid, long now, StatEvent event, JMSContext context) {
 		try {
 			if (debug) 
 				logger.info("statConsumer: " + queueName + " before stat "+ uuid + " " + (System.currentTimeMillis() - now));
