@@ -4,8 +4,8 @@ name: stable-release
 
 on:
   push:
-    tags: [ 'v*' ]
-  workflow_dispatch:
+    tags:
+      - "*"
 
 env:
   QUARKUS_CONTAINER_IMAGE_USERNAME: ${{ secrets.DOCKER_HUB_LOGIN }}
