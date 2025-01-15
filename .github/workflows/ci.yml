@@ -46,7 +46,7 @@ jobs:
               [
                 "@semantic-release/docker",
                 {
-                  "image": "${{ env.QUARKUS_CONTAINER_IMAGE_USERNAME }}/my-app:${{ github.ref }}",
+                  "image": "${{ github.ref_name }}",
                   "tag": "${{ github.ref }}"
                 }
               ]
