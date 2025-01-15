@@ -42,3 +42,8 @@ jobs:
         run: |
           ./mvnw package -B -Dquarkus.container-image.tag=${GITHUB_REF##*/}
           docker image ls
+        
+      - name: Deploy new version
+        run: |
+          ./mvnw package -B -Dquarkus.container-image.tag=${{ steps.tag_version.outputs.new_tag }}
+          docker image ls
