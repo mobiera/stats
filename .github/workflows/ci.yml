@@ -1,5 +1,3 @@
-## A basic GitHub Actions workflow for your Quarkus application.
-
 name: CI
 
 on:
@@ -10,6 +8,7 @@ on:
 env:
   QUARKUS_CONTAINER_IMAGE_USERNAME: ${{ secrets.DOCKER_HUB_LOGIN }}
   QUARKUS_CONTAINER_IMAGE_PASSWORD: ${{ secrets.DOCKER_HUB_PWD }}
+  GITHUB_REF: ${{ github.ref }}
 
 jobs:
   build:
@@ -25,7 +24,35 @@ jobs:
           distribution: temurin
           cache: maven
         
+      - uses: codfish/semantic-release-action@v3
+        with:
+          branches: |
+            [
+              'main',
+              { 
+                name: 'dev',
+                prerelease: 'dev'
+              }
+            ]
+          plugins: |
+            [
+              [
+                "@semantic-release/commit-analyzer",
+                {
+                  "preset": "angular"
+                }
+              ],
+              "@semantic-release/release-notes-generator",
+              [
+                "@semantic-release/docker",
+                {
+                  "image": "${{ env.QUARKUS_CONTAINER_IMAGE_USERNAME }}/my-app:${{ github.ref }}",
+                  "tag": "${{ github.ref }}"
+                }
+              ]
+            ]
+        
       - name: Build
         run: |
-          ./mvnw package -B -Dquarkus.container-image.tag=${GITHUB_REF##*/}
+          ./mvnw package -B -Dquarkus.container-image.tag=${{ github.ref }}
           docker image ls
