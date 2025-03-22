@@ -62,10 +62,6 @@ public class StatController {
 	Long ttl;
 	
 	
-	
-	@Inject ConnectionFactory connectionFactory;
-	
-	
 	@Inject
 	StatBuilderService statService;
 	
