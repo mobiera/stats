@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.mobiera.commons</groupId>
   <artifactId>stats</artifactId>
-  <version>2.2-SNAPSHOT</version>
+  <version>2.3-SNAPSHOT</version>
   <name>Stats Container</name>
    <description>A scalable container for centralizing service statistics</description>
    <url>https://github.com/mobiera/stats</url>

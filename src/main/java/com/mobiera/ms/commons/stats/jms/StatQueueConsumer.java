@@ -23,6 +23,7 @@ import com.mobiera.ms.commons.stats.svc.StatBuilderService;
 import io.quarkus.arc.Arc;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,10 +40,7 @@ import jakarta.jms.TextMessage;
 import lombok.Data;
 
 @ApplicationScoped
-public class StatQueueConsumer {
-
-	@Inject
-    ConnectionFactory connectionFactory;
+public class StatQueueConsumer extends MultiAbstractConsumer {
 
 	@Inject
 	StatBuilderService statBuilderService;
@@ -75,12 +73,32 @@ public class StatQueueConsumer {
 	private Map<UUID,Boolean> runnings = new HashMap<UUID,Boolean>();
 	private Map<UUID,Boolean> starteds = new HashMap<UUID,Boolean>();
 
+	/*
+     * Artemis configurations
+     */
+    
+	public StatQueueConsumer() { super();}
+	
+	public StatQueueConsumer(@Identifier("a0") ConnectionFactory connectionFactory0,
+			@Identifier("a1") ConnectionFactory connectionFactory1,
+			@Identifier("a2") ConnectionFactory connectionFactory2,
+			@Identifier("a3") ConnectionFactory connectionFactory3,
+			@Identifier("a4") ConnectionFactory connectionFactory4,
+			@Identifier("a5") ConnectionFactory connectionFactory5,
+			@Identifier("a6") ConnectionFactory connectionFactory6,
+			@Identifier("a7") ConnectionFactory connectionFactory7
+			) {
+		super(connectionFactory0, connectionFactory1, connectionFactory2, connectionFactory3, connectionFactory4,
+				connectionFactory5, connectionFactory6, connectionFactory7);
+	}
     
     
     void onStart(@Observes StartupEvent ev) {
     	//scheduler.submit(this);
     	
-    	for (int i=0; i<threads;i++) {
+    	int totalThreads = threads * this.getConnectionFactoriesSize();
+    	
+    	for (int i=0; i<totalThreads;i++) {
 			logger.info("startStatConsumers: starting consumer #" + i);
 			UUID uuid = UUID.randomUUID();
 			starteds.put(uuid, true);
@@ -186,7 +204,7 @@ public class StatQueueConsumer {
 
 
      			if (context == null) {
-     				context = connectionFactory.createContext(Session.SESSION_TRANSACTED);
+     				context = getConnectionFactory().createContext(Session.SESSION_TRANSACTED);
      			}
 
 
