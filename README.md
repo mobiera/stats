@@ -5,8 +5,6 @@ The STATS project, developed by `MOBIERA SAS`, is designed to handle statistics 
 Ensure the following properties in the `application.properties` file are updated for the STATS project:
 
 ```
-quarkus.artemis.username - Artemis connection username
-quarkus.artemis.password - Artemis connection password
 com.mobiera.ms.commons.stats.standalone=true - Set to true since the library is part of another project and works as an independent module
 com.mobiera.ms.commons.stats.threads=32 - The number of threads; consider resource consumption
 quarkus.datasource.db-kind - Database kind, preferably postgres
@@ -16,7 +14,79 @@ quarkus.datasource.jdbc.url - Database URL
 com.mobiera.ms.commons.stats.debug - Set to true to activate logging
 com.mobiera.ms.commons.stats.jms.queue.name - set the queue name
 ```
+
+## Artemis configuration
+
+
+You can configure until 8 Artemis servers for queues. You need to decide globally for your project and all mno-adapters deployed for this project MUST share the same configuration.
+
+All queues are replicated across all instances.
+
 **Note**: Ensure that the Artemis credentials in your project can connect with the configured credentials.
+
+### Define the number of required instances
+
+Select from 1 to 8.
+
+```
+com.mobiera.ms.mno.quarkus.artemis.instances=1
+```
+
+### Configure each instance
+
+```
+quarkus.artemis."a0".url=tcp://artemis:61616
+quarkus.artemis."a0".username=quarkus
+quarkus.artemis."a0".password=...
+
+quarkus.artemis."a1".url=tcp://artemis:61616
+quarkus.artemis."a1".username=quarkus
+quarkus.artemis."a1".password=...
+
+quarkus.artemis."a2".url=tcp://artemis:61616
+quarkus.artemis."a2".username=quarkus
+quarkus.artemis."a2".password=...
+
+quarkus.artemis."a3".url=tcp://artemis:61616
+quarkus.artemis."a3".username=quarkus
+quarkus.artemis."a3".password=...
+
+quarkus.artemis."a4".url=tcp://artemis:61616
+quarkus.artemis."a4".username=quarkus
+quarkus.artemis."a4".password=...
+
+quarkus.artemis."a5".url=tcp://artemis:61616
+quarkus.artemis."a5".username=quarkus
+quarkus.artemis."a5".password=...
+
+quarkus.artemis."a6".url=tcp://artemis:61616
+quarkus.artemis."a6".username=quarkus
+quarkus.artemis."a6".password=...
+
+quarkus.artemis."a7".url=tcp://artemis:61616
+quarkus.artemis."a7".username=quarkus
+quarkus.artemis."a7".password=...
+
+```
+
+### Kubernetes
+
+use:
+
+```
+ 
+ COM_MOBIERA_MS_MNO_QUARKUS_ARTEMIS_INSTANCES=...
+
+ QUARKUS_ARTEMIS__A0__URL=...
+ QUARKUS_ARTEMIS__A0__USERNAME=...
+ QUARKUS_ARTEMIS__A0__PASSWORD=...
+ 
+ QUARKUS_ARTEMIS__A1__URL=...
+ ...
+ 
+```
+
+
 
 ## Usage
 The STATS project uses Swagger for easy exploration of available endpoints for statistic queries. It is recommended to use a REST client on port 8700 (default) for the following endpoints:
