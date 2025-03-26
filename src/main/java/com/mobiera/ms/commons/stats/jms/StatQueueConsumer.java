@@ -77,7 +77,6 @@ public class StatQueueConsumer extends MultiAbstractConsumer {
      * Artemis configurations
      */
     
-	public StatQueueConsumer() { super();}
 	
 	public StatQueueConsumer(@Identifier("a0") ConnectionFactory connectionFactory0,
 			@Identifier("a1") ConnectionFactory connectionFactory1,
@@ -88,7 +87,7 @@ public class StatQueueConsumer extends MultiAbstractConsumer {
 			@Identifier("a6") ConnectionFactory connectionFactory6,
 			@Identifier("a7") ConnectionFactory connectionFactory7
 			) {
-		super(connectionFactory0, connectionFactory1, connectionFactory2, connectionFactory3, connectionFactory4,
+		configure(connectionFactory0, connectionFactory1, connectionFactory2, connectionFactory3, connectionFactory4,
 				connectionFactory5, connectionFactory6, connectionFactory7);
 	}
     
