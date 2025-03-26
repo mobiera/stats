@@ -15,13 +15,13 @@ public abstract class MultiAbstractConsumer {
      */
 	
 	
-    private final List<ConnectionFactory> connectionFactories;
+    private List<ConnectionFactory> connectionFactories;
     private Object artemisConfigLockobj = new Object();
     private Integer connectionFactoryIdx = 0;
     
     private static final Logger logger = Logger.getLogger(MultiAbstractConsumer.class);
 	
-	public MultiAbstractConsumer(
+	protected void configure(
 			ConnectionFactory connectionFactory0,
 			ConnectionFactory connectionFactory1,
 			ConnectionFactory connectionFactory2,
@@ -47,6 +47,7 @@ public abstract class MultiAbstractConsumer {
 			if (instanceCount>6) connectionFactories.add(connectionFactory6);
 			if (instanceCount>7) connectionFactories.add(connectionFactory7);
 			
+			logger.info(connectionFactory0);
 			logger.info("using instanceCount: " + instanceCount + " artemis configuration(s). You can override by setting com.mobiera.ms.mno.quarkus.artemis.instances and configuring artemis URLs and credentials. refer to README.md of mno-adapters-rest-endpoint for manual");
 
 		}
@@ -54,10 +55,7 @@ public abstract class MultiAbstractConsumer {
 		
 	}
 	
-	public MultiAbstractConsumer() {
-		this(null, null, null, null, null,
-				null, null, null);
-	}
+	
 
 	private static Object getConnectionFactoryLockObj = new Object();
 	
