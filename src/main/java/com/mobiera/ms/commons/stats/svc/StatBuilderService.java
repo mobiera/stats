@@ -431,6 +431,13 @@ public class StatBuilderService {
 											
 										}
 										
+										if (stat == null) {
+											synchronized (dateStats) {
+												dateStats.remove(currentDateTime);
+											}
+											continue;
+										}
+										
 										if (shutdown) {
 											try {
 												Object statLockObj = this.getLockObj(stat.getLockObjId());
@@ -483,12 +490,13 @@ public class StatBuilderService {
 												Object statLockObj = this.getLockObj(stat.getLockObjId());
 												synchronized (statLockObj) {
 													stat = treatStatFlush(stat);
-													
-												}
-												
-												synchronized (dateStats) {
-													dateStats.put(currentDateTime, stat);
-
+													// Replace the cached instance while still holding the
+													// per-bucket lock so a concurrent increment cannot apply
+													// to the pre-merge instance and then be discarded (lost
+													// update) when the merged instance overwrites it.
+													synchronized (dateStats) {
+														dateStats.put(currentDateTime, stat);
+													}
 												}
 												
 											} catch (Exception e) {
@@ -547,8 +555,22 @@ public class StatBuilderService {
 										
 										synchronized (dateStats) {
 											stat = dateStats.get(currentDateTime);
+										}
+										
+										if (stat == null) {
+											continue;
+										}
+										
+										// Use the same per-bucket lock discipline as the periodic
+										// flush so on-demand flushes and concurrent increments are
+										// mutually exclusive, and to keep a consistent
+										// statLockObj -> dateStats lock ordering (no deadlock).
+										Object statLockObj = this.getLockObj(stat.getLockObjId());
+										synchronized (statLockObj) {
 											stat = treatStatFlush(stat);
-											dateStats.put(currentDateTime, stat);
+											synchronized (dateStats) {
+												dateStats.put(currentDateTime, stat);
+											}
 										}
 										
 										
