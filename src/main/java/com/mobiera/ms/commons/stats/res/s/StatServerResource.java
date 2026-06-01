@@ -81,13 +81,10 @@ public class StatServerResource {
 		
 		Response.Status status = Response.Status.BAD_REQUEST;
 
-		request.setStatGranularity(this.computeGranularity(request.getFrom(), request.getTo()));
-
 		if ((request.getFrom() == null) ||
 				(request.getTo() == null) ||
 				(request.getStatClass() == null) ||
 				(request.getStatEnums() == null) ||
-				(request.getStatGranularity() == null) ||
 				(request.getStatResultType() == null) ||
 				(request.getStatEnums().size() == 0)
 				) {
@@ -96,7 +93,9 @@ public class StatServerResource {
 
 		} else {
 
-			
+			// Derive granularity only after from/to are validated; computeGranularity
+			// dereferences both, so doing it first would NPE (500) on a bad request.
+			request.setStatGranularity(this.computeGranularity(request.getFrom(), request.getTo()));
 			try {
 				answer = statReaderService.getStatViewVO(request.getFrom(),
 						request.getTo(), request.getEntityIds()==null?new ArrayList<String>(0):request.getEntityIds(),
@@ -122,20 +121,21 @@ public class StatServerResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response getCompareStatViewRequest(CompareStatView request) throws JsonProcessingException, InterruptedException
 	{
-		request.setStatGranularity(this.computeGranularity(request.getFrom(), request.getTo()));
 		StatView answer = null;
 		Response.Status status = Response.Status.BAD_REQUEST;
 
 		if ((request.getFrom() == null) ||
 				(request.getTo() == null) ||
 				(request.getKpis() == null) ||
-				(request.getStatGranularity() == null) ||
 				(request.getStatResultType() == null) ||
 				(request.getKpis().size() == 0)
 				) {
 			status = Status.BAD_REQUEST;
 		} else {
 
+			// Derive granularity only after from/to are validated; computeGranularity
+			// dereferences both, so doing it first would NPE (500) on a bad request.
+			request.setStatGranularity(this.computeGranularity(request.getFrom(), request.getTo()));
 			try {
 				answer = statReaderService.getCompareStatViewVO(request.getFrom(),
 						request.getTo(), request.getKpis(),
