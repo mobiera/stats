@@ -66,15 +66,17 @@ public class StatReaderService {
 	@ConfigProperty(name = "com.mobiera.ms.commons.stats.in.memory.past.units")
 	Integer inMemoryPastUnits;
 	
-	private static NumberFormat nf = null;
+	// NumberFormat is not thread-safe; the reader service is hit by multiple
+	// concurrent REST threads, so use a per-thread instance.
+	private static final ThreadLocal<NumberFormat> nf = ThreadLocal.withInitial(() -> {
+		NumberFormat instance = NumberFormat.getInstance();
+		instance.setMaximumIntegerDigits(20);
+		instance.setMaximumFractionDigits(2);
+		return instance;
+	});
 	
 	private NumberFormat getNf() {
-		if (nf == null) {
-			nf = NumberFormat.getInstance();
-			nf.setMaximumIntegerDigits(20);
-			nf.setMaximumFractionDigits(2);
-		}
-		return nf;
+		return nf.get();
 	}
 	
 	private List<String> buildHeader(List<StatEnum> enums) {

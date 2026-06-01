@@ -78,13 +78,27 @@ public class StatController {
 	
 	private static final Logger logger = Logger.getLogger("StatController");
 
-	private static boolean startedPurge = true;
+	private static volatile boolean startedPurge = true;
 	
-	private boolean finished = false;
+	private volatile boolean finished = false;
 	
 	void onStart(@Observes StartupEvent ev) {
 		logger.info("onStart: starting");
 		//startStatConsumers();
+		
+		// Initialize the timezone and the in-memory stats map BEFORE marking the
+		// service as started, otherwise consumer threads can observe
+		// startedService==true and call getStat() while stats is still null (NPE),
+		// since startPurgeTask() runs asynchronously on the worker pool.
+		if (tz == null) {
+			try {
+				tz = ZoneId.of(timezoneName);
+			} catch (Exception e) {
+				logger.error("onStart: invalid com.mobiera.ms.commons.stats.timezone: " + timezoneName);
+				throw(e);
+			}
+		}
+		statService.init(tz);
 		
 		startPurgeTask();
 		statService.setStartedService(true);

@@ -57,7 +57,7 @@ public class StatBuilderService {
 	
 	private static Logger logger = Logger.getLogger(StatBuilderService.class);
 	private static Map<String, Map<String, Map<StatGranularity, Map<Instant, Stat>>>> stats;
-	private static boolean startedService = false;
+	private static volatile boolean startedService = false;
 	
 	
 	public boolean isDebugEnabled() {
@@ -311,8 +311,9 @@ public class StatBuilderService {
 								if (raceStat == null) {
 									dateStats.put(stateDateTime, stat);
 									if (this.isDebugEnabled()) logger.info("getStat: CREATED: entityId: " + entityId + " stat: " + stat  + " stateDateTime: " + stateDateTime + " statGranularity: " + statGranularity);
-								} {
-									logger.warn("getStat: Not CREATED: entityId: " + entityId + " stat: " + stat  + " stateDateTime: " + stateDateTime + " statGranularity: " + statGranularity);
+								} else {
+									stat = raceStat;
+									if (this.isDebugEnabled()) logger.info("getStat: Not CREATED, using cached race winner: entityId: " + entityId + " stat: " + stat  + " stateDateTime: " + stateDateTime + " statGranularity: " + statGranularity);
 								}
 								
 							}
@@ -336,10 +337,12 @@ public class StatBuilderService {
 	}
 	
 	
-	public void init(ZoneId tz) {
+	public synchronized void init(ZoneId tz) {
 		this.tz = tz;
 		
-		stats = new ConcurrentHashMap<String, Map<String, Map<StatGranularity, Map<Instant, Stat>>>>(5);
+		if (stats == null) {
+			stats = new ConcurrentHashMap<String, Map<String, Map<StatGranularity, Map<Instant, Stat>>>>(5);
+		}
 		//em.find(Stat.class, "1");
 	}
 
