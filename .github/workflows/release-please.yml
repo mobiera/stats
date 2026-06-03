@@ -71,7 +71,9 @@ jobs:
 
       - name: Build and push container image
         run: |
-          VERSION="${TAG_NAME#v}"
-          echo "Building ${IMAGE}:${VERSION} from tag ${TAG_NAME}"
-          docker build -f src/main/docker/Dockerfile.jvm -t "${IMAGE}:${VERSION}" .
-          docker push "${IMAGE}:${VERSION}"
+          echo "Building ${IMAGE}:main and ${IMAGE}:${TAG_NAME} from tag ${TAG_NAME}"
+          docker build -f src/main/docker/Dockerfile.jvm \
+            -t "${IMAGE}:main" \
+            -t "${IMAGE}:${TAG_NAME}" .
+          docker push "${IMAGE}:main"
+          docker push "${IMAGE}:${TAG_NAME}"
