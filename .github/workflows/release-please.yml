@@ -3,6 +3,15 @@ name: release-please
 on:
   push:
     branches: [main]
+  # Manual trigger to (re)send a Discord release notification for an existing
+  # tag, e.g. to backfill a release published before the webhook secret was set.
+  # Only the discord-notify-manual job runs for this event.
+  workflow_dispatch:
+    inputs:
+      notify_tag:
+        description: "Release tag to (re)announce on Discord, e.g. v5.7.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,6 +20,7 @@ permissions:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -77,3 +87,30 @@ jobs:
             -t "${IMAGE}:${TAG_NAME}" .
           docker push "${IMAGE}:main"
           docker push "${IMAGE}:${TAG_NAME}"
+
+  # release-please creates the GitHub Release with the default GITHUB_TOKEN, so
+  # the `release: published` event does NOT trigger downstream workflows. We
+  # therefore call the Discord notification reusable workflow directly here,
+  # gated on the `release_created` output, instead of via a `release` trigger.
+  # The webhook secret is passed explicitly (not `secrets: inherit`) because the
+  # reusable workflow lives in another org (2060-io) and inherited secrets are
+  # not reliably forwarded across the org boundary.
+  discord-notify:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: 2060-io/organization/.github/workflows/discord-release-notify-call.yml@main
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+    secrets:
+      DISCORD_UPDATES_WEBHOOK_URL: ${{ secrets.DISCORD_UPDATES_WEBHOOK_URL }}
+
+  # Manual (re)send of the Discord notification for an existing tag, triggered
+  # via workflow_dispatch. Independent of release-please so it can announce a
+  # tag that was already released.
+  discord-notify-manual:
+    if: github.event_name == 'workflow_dispatch'
+    uses: 2060-io/organization/.github/workflows/discord-release-notify-call.yml@main
+    with:
+      tag_name: ${{ inputs.notify_tag }}
+    secrets:
+      DISCORD_UPDATES_WEBHOOK_URL: ${{ secrets.DISCORD_UPDATES_WEBHOOK_URL }}
