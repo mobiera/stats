@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.2.0](https://github.com/mobiera/stats/compare/v5.1.0...v5.2.0) (2026-06-05)
+
+
+### Features
+
+* notify Discord on release and add manual resend trigger ([dd1ee9c](https://github.com/mobiera/stats/commit/dd1ee9ccd620f2f341e368c1ed9675c2395eea26))
+* notify Discord on release and add manual resend trigger ([6724187](https://github.com/mobiera/stats/commit/6724187421772c459aec094d1b84e95c510e7f95))
+
 ## [5.1.0](https://github.com/mobiera/stats/compare/v5.0.0...v5.1.0) (2026-06-03)
 
 
