@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.2.1](https://github.com/mobiera/stats/compare/v5.2.0...v5.2.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* missing transactional annotation on loadOrCreate ([8ef5b79](https://github.com/mobiera/stats/commit/8ef5b79c7675e432c802c10d6b6d2aa5bf3324ae))
+* missing transactional annotation on loadOrCreate ([8a57e89](https://github.com/mobiera/stats/commit/8a57e89079325697587c2621a47137bc6758e4b6))
+
 ## [5.2.0](https://github.com/mobiera/stats/compare/v5.1.0...v5.2.0) (2026-06-05)
 
 
