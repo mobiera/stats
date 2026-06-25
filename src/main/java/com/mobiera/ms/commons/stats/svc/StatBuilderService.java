@@ -228,7 +228,7 @@ public class StatBuilderService {
 
 	
 	
-	
+	@Transactional
 	public synchronized Stat loadOrCreate(String entityId, StatGranularity statGranularity, Instant ts, String sc) {
 		
 		
