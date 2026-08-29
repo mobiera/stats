@@ -33,6 +33,7 @@ import com.mobiera.ms.commons.stats.assembler.StatVOAssembler;
 import com.mobiera.ms.commons.stats.model.Stat;
 import com.mobiera.ms.commons.stats.svc.StatBuilderService;
 import com.mobiera.ms.commons.stats.svc.StatReaderService;
+import com.mobiera.ms.commons.stats.api.GetSumLastNStatVOs;
 
 
 
@@ -205,6 +206,50 @@ public class StatServerResource {
 	
 	
 
+	@POST
+	@Path("/sumLastNStatVOs")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response getSumLastNStatVOs(GetSumLastNStatVOs request) {
+		
+		Response.Status status = Response.Status.BAD_REQUEST;
+		
+		if (request == null) {
+			return Response.status(status).build();
+		}
+		if (request.getStatClass() == null) {
+			return Response.status(status).build();
+		}
+		if (request.getEntityIds() == null) {
+			return Response.status(status).build();
+		}
+		if (request.getStatGranularity() == null) {
+			return Response.status(status).build();
+		}
+		if (request.getCurrentDateTime() == null) {
+			return Response.status(status).build();
+		}
+		if (request.getN() == null) {
+			return Response.status(status).build();
+		}
+		
+		try {
+			List<StatVO> answer = statReaderService.getSumLastNStatVOs(
+					request.getStatClass(),
+					request.getEntityIds(),
+					request.getStatGranularity(),
+					request.getCurrentDateTime(),
+					request.getN()
+					);
+			status = Response.Status.OK;
+			return Response.status(status).entity(answer).build();
+		} catch (Exception e) {
+			logger.error("", e);
+			status = Response.Status.INTERNAL_SERVER_ERROR;
+		}
+		return Response.status(status).build();
+	}
+	
 	private StatGranularity computeGranularity(Instant from, Instant to) {
 		if ((to.getEpochSecond()-from.getEpochSecond()) < 30l * 3600l) {
 			return StatGranularity.HOUR;
