@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.3.0](https://github.com/mobiera/stats/compare/v5.2.1...v5.3.0) (2026-08-29)
+
+
+### Features
+
+* batch endpoint POST /stats/sumLastNStatVOs ([3733cfd](https://github.com/mobiera/stats/commit/3733cfdef81b221eaa34a7c9aedef3e99dfc0ea5))
+* batch endpoint POST /stats/sumLastNStatVOs ([5213d3e](https://github.com/mobiera/stats/commit/5213d3ef68fb3b7411714f934caedf56617c3597))
+
 ## [5.2.1](https://github.com/mobiera/stats/compare/v5.2.0...v5.2.1) (2026-06-25)
 
 
