@@ -12,6 +12,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -628,6 +633,33 @@ public class StatReaderService {
 	}
 		
 	
+	// Reflection handles resolved once: sumStats used to look up 3 Methods per field per row.
+	private static final int LONG_FIELDS = 100;
+	private static final int DOUBLE_FIRST = 128;
+	private static final int DOUBLE_LAST = 137; // exclusive
+	private static final Method[] STAT_LONG_GET = new Method[LONG_FIELDS];
+	private static final Method[] VO_LONG_GET = new Method[LONG_FIELDS];
+	private static final Method[] VO_LONG_SET = new Method[LONG_FIELDS];
+	private static final Method[] STAT_DOUBLE_GET = new Method[DOUBLE_LAST];
+	private static final Method[] VO_DOUBLE_GET = new Method[DOUBLE_LAST];
+	private static final Method[] VO_DOUBLE_SET = new Method[DOUBLE_LAST];
+	static {
+		try {
+			for (int i = 0; i < LONG_FIELDS; i++) {
+				STAT_LONG_GET[i] = Stat.class.getMethod("getLong" + i);
+				VO_LONG_GET[i] = StatVO.class.getMethod("getLong" + i);
+				VO_LONG_SET[i] = StatVO.class.getMethod("setLong" + i, Long.class);
+			}
+			for (int i = DOUBLE_FIRST; i < DOUBLE_LAST; i++) {
+				STAT_DOUBLE_GET[i] = Stat.class.getMethod("getDouble" + i);
+				VO_DOUBLE_GET[i] = StatVO.class.getMethod("getDouble" + i);
+				VO_DOUBLE_SET[i] = StatVO.class.getMethod("setDouble" + i, Double.class);
+			}
+		} catch (NoSuchMethodException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+
 	private StatVO sumStats(String statClass, String entityId, StatGranularity statGranularity, List<Stat> toSum) 
 			throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		StatVO vo = new StatVO();
@@ -639,47 +671,35 @@ public class StatReaderService {
 		for (Stat s: toSum) {
 			
 			if (s != null) {
-				for (short i=0; i<100; i++) {
-					Method getSMethod = Stat.class.getMethod("getLong" + i);
-					Method getVMethod = StatVO.class.getMethod("getLong" + i);
-					Method setVMethod = StatVO.class.getMethod("setLong" + i, Long.class);
-					Long value = (Long) getSMethod.invoke(s);
+				for (int i = 0; i < LONG_FIELDS; i++) {
+					Long value = (Long) STAT_LONG_GET[i].invoke(s);
 					if (value != null) {
 						if (first) {
-							setVMethod.invoke(vo, value);
+							VO_LONG_SET[i].invoke(vo, value);
 							first = false;
 						} else {
-							setVMethod.invoke(vo, 
-									((Long)getVMethod.invoke(vo) + value));
+							VO_LONG_SET[i].invoke(vo, 
+									((Long) VO_LONG_GET[i].invoke(vo) + value));
 						}
 					}
 					
 				}
-				for (short i=128; i<137; i++) {
-					Method getSMethod = Stat.class.getMethod("getDouble" + i);
-					Method getVMethod = StatVO.class.getMethod("getDouble" + i);
-					Method setVMethod = StatVO.class.getMethod("setDouble" + i, Double.class);
-					Double value = (Double) getSMethod.invoke(s);
-					
+				for (int i = DOUBLE_FIRST; i < DOUBLE_LAST; i++) {
+					Double value = (Double) STAT_DOUBLE_GET[i].invoke(s);
 					if (value != null) {
 						BigDecimal bd = BigDecimal.valueOf((Double)value);
 					    bd = bd.setScale(2, RoundingMode.HALF_UP);
 					    value = Double.valueOf(bd.doubleValue());
-						
-					    
-					    
 						if (first) {
-							setVMethod.invoke(vo, value);
+							VO_DOUBLE_SET[i].invoke(vo, value);
 							first = false;
 						} else {
-							setVMethod.invoke(vo, 
-									((Double)getVMethod.invoke(vo) + value));
+							VO_DOUBLE_SET[i].invoke(vo, 
+									((Double) VO_DOUBLE_GET[i].invoke(vo) + value));
 						}
 					}
-					
 				}
 			}
-			
 		}
 		return vo;
 	}
@@ -757,6 +777,63 @@ public class StatReaderService {
 		
 
 		return vo;
+	}
+
+	/** Max number of entity ids per SQL IN list. */
+	private static final int BATCH_QUERY_SIZE = 500;
+
+	/**
+	 * Batch variant of {@link #getSumLastNStatVO}: one StatVO per requested entityId
+	 * (entityId always set, zeros when there are no stats), computed with one query per
+	 * {@value #BATCH_QUERY_SIZE} ids instead of one query per entity.
+	 */
+	public List<StatVO> getSumLastNStatVOs(String statClass, 
+			List<String> entityIds, 
+			StatGranularity statGranularity, 
+			Instant currentDateTime, int n) throws NoSuchMethodException, SecurityException, 
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException  {
+		
+		Set<String> ids = new LinkedHashSet<String>(entityIds);
+		List<StatVO> vos = new ArrayList<StatVO>(ids.size());
+		
+		if (!(n>0 && (n<=inMemoryPastUnits))) {
+			for (String entityId: ids) {
+				StatVO vo = new StatVO();
+				vo.setEntityId(entityId);
+				vos.add(vo);
+			}
+			return vos;
+		}
+		
+		// push pending in-memory counters of the requested entities to the DB first
+		for (String entityId: ids) {
+			statService.flushStats(statClass, entityId);
+		}
+		
+		ZonedDateTime currentZdt = ZonedDateTime.ofInstant(currentDateTime, statService.getTz());
+		ZonedDateTime toZdt =  getZTSBeforeN(currentZdt, statGranularity, n);
+		
+		Map<String, List<Stat>> byEntity = new HashMap<String, List<Stat>>();
+		List<String> idList = new ArrayList<String>(ids);
+		for (int i = 0; i < idList.size(); i += BATCH_QUERY_SIZE) {
+			List<String> chunk = idList.subList(i, Math.min(i + BATCH_QUERY_SIZE, idList.size()));
+			Query q = em.createNamedQuery("Stat.listVarious");
+			q.setParameter("statClass", statClass);
+			q.setParameter("entityIds", chunk);
+			q.setParameter("statGranularity", statGranularity);
+			q.setParameter("from", toZdt.toInstant());
+			q.setParameter("to", currentZdt.toInstant());
+			@SuppressWarnings("unchecked")
+			List<Stat> res = (List<Stat>) q.getResultList();
+			for (Stat stat: res) {
+				byEntity.computeIfAbsent(stat.getEntityId(), k -> new ArrayList<Stat>()).add(stat);
+			}
+		}
+		
+		for (String entityId: ids) {
+			vos.add(sumStats(statClass, entityId, statGranularity, byEntity.getOrDefault(entityId, Collections.emptyList())));
+		}
+		return vos;
 	}
 	private ZonedDateTime getZTSBefore(ZonedDateTime zts, StatGranularity statGranularity) {
 		ZonedDateTime retval = null;
